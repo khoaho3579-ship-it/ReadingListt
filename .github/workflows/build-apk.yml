@@ -14,8 +14,11 @@ jobs:
         run: |
           sed -i 's|id("com.google.devtools.ksp") version "2.0.21-1.0.26" apply false|&\n    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false|' build.gradle.kts
           sed -i 's|^    id("com.google.devtools.ksp")$|&\n    id("org.jetbrains.kotlin.plugin.compose")|' app/build.gradle.kts
-          cat build.gradle.kts
-          head -8 app/build.gradle.kts
+      - name: Tu dong tang versionCode
+        working-directory: ReadingList
+        run: |
+          sed -i 's|versionCode = 1$|versionCode = ${{ github.run_number }}|' app/build.gradle.kts
+          grep -n versionCode app/build.gradle.kts
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,13 +30,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-      - name: Tao keystore
+      - name: Lay keystore co dinh
         working-directory: ReadingList
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          keytool -genkeypair -keystore release.keystore -alias release \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass freddyrelease -keypass freddyrelease \
-            -dname "CN=ReadingList, OU=Freddy, O=Freddy, C=US"
+          test -n "$KEYSTORE_B64" || { echo "Thieu secret KEYSTORE_BASE64"; exit 1; }
+          echo "$KEYSTORE_B64" | base64 -d > release.keystore
       - name: Build APK
         working-directory: ReadingList
         run: gradle assembleRelease --no-daemon
